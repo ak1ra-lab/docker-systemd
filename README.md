@@ -351,10 +351,13 @@ molecule test -s systemd
 
 CI runs the scenario as root with rootful Podman on GitHub-hosted runners.
 Rootful Podman avoids rootless cgroup delegation differences on CI runners and
-is the most predictable way to run systemd containers there. Locally, rootless
-Podman is the recommended path and is what the examples use. Docker is covered
-by the per-image smoke tests plus the documented `docker run` and
-`community.docker` configuration.
+is the most predictable way to run systemd containers there. The images are
+prepared with `hack/ci-load-images.sh`, which rebuilds them from the Docker
+build cache the smoke tests populate and loads them into Podman, so the job
+does not pay for a second cold build. Locally, rootless Podman is the
+recommended path and is what the examples use. Docker is covered by the
+per-image smoke tests plus the documented `docker run` and `community.docker`
+configuration.
 
 ## Adding a distribution or version
 
@@ -379,15 +382,22 @@ policy.
 
 ## Release and rebuild policy
 
-* Every pull request runs lint, a build and smoke test for every image and
-  architecture, and the Molecule integration test.
-* Pushes to `main` run the same checks — lint, build-smoke and molecule — and
-  then publish multi-architecture manifests to GHCR.
+* Lint, including the generated-file drift check, runs on every pull request
+  and push.
+* The build, smoke test and Molecule integration stages run only when the
+  files they depend on changed: `matrix.yaml`, `templates/`, `images/`, the
+  build and test scripts under `hack/`, the Molecule scenario, the Python
+  requirements or the workflow itself. A documentation-only change skips
+  them.
+* Pushes to `main` publish multi-architecture manifests to GHCR after those
+  checks, but only when the image inputs changed. Test-only changes run the
+  suite without publishing.
 * A scheduled run every Monday at 03:17 UTC rebuilds everything from the
-  current upstream base images. This is how security updates reach the images
-  even when this repository does not change. Scheduled runs execute lint,
-  build-smoke and molecule before publishing.
-* `workflow_dispatch` allows manual rebuilds.
+  current upstream base images, regardless of file changes. This is how
+  security updates reach the images even when this repository does not change.
+  Scheduled runs execute lint, build-smoke and molecule before publishing.
+* `workflow_dispatch` allows manual rebuilds and also ignores the path
+  gating.
 
 Version tags are updated in place by these rebuilds. Consumers who need an
 immutable reference should pin by digest.

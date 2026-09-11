@@ -54,6 +54,27 @@ jobs:
             echo "__MATRIX__"
           } >> "$GITHUB_OUTPUT"
 
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.detect.outputs.build }}
+      publish: ${{ steps.detect.outputs.publish }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect changed paths
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: hack/ci-changed.sh
+
   lint:
     name: Lint
     runs-on: ubuntu-24.04
@@ -94,7 +115,10 @@ jobs:
 
   build-smoke:
     name: ${{ matrix.distro }}:${{ matrix.version }} (${{ matrix.arch }})
-    needs: matrix
+    needs:
+      - changes
+      - matrix
+    if: needs.changes.outputs.build == 'true'
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 30
     strategy:
@@ -133,6 +157,11 @@ jobs:
 
   molecule:
     name: Molecule integration
+    needs:
+      - build-smoke
+      - changes
+      - matrix
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -154,8 +183,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
-      - name: Build every image with rootful Podman
-        run: sudo env "PATH=${PATH}" hack/build.sh --all --runtime podman --jobs 4 --pull
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      # The build-smoke jobs already built every amd64 image and wrote the
+      # layers to the Actions cache. Rebuilding from that cache is seconds per
+      # image instead of a second cold build with Podman.
+      - name: Rebuild the amd64 images from the Actions cache
+        run: hack/ci-load-images.sh --arch amd64
       - name: Run the Ansible-native Molecule scenario
         run: sudo env "PATH=${PATH}" hack/molecule-test.sh
 
@@ -164,7 +198,9 @@ jobs:
     if: >-
       github.event_name != 'pull_request'
       && github.ref == 'refs/heads/main'
+      && needs.changes.outputs.publish == 'true'
     needs:
+      - changes
       - lint
       - matrix
       - build-smoke

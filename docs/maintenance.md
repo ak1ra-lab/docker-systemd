@@ -119,14 +119,24 @@ cgroup v2.
 
 | Event | What runs |
 | --- | --- |
-| Pull request | lint, build + smoke test (amd64 and arm64), Molecule integration |
-| Push to `main` | the same checks, then multi-architecture publish to GHCR |
+| Pull request | lint always; build + smoke test (amd64 and arm64) and Molecule integration only when build inputs changed |
+| Push to `main` | the same checks, then multi-architecture publish to GHCR when image inputs changed |
 | Weekly schedule (Monday 03:17 UTC) | full rebuild, full test suite, publish |
 | `workflow_dispatch` | manual rebuild with the same guarantees |
+
+The `changes` job (`hack/ci-changed.sh`) decides whether build inputs changed.
+Lint, including the generated-file drift check, always runs, so a
+documentation-only commit still cannot leave generated files stale. Scheduled
+and manual runs always run everything.
 
 The publish job only runs after the lint, matrix, build-smoke and molecule
 jobs succeed. Every scheduled rebuild re-runs the smoke tests before anything
 is pushed.
+
+The Molecule job does not build the images from scratch. It runs after
+build-smoke, whose jobs have already written every layer to the Actions build
+cache. `hack/ci-load-images.sh` rebuilds the amd64 images from that cache and
+loads them into Podman before the scenario runs.
 
 ## Tag policy
 
