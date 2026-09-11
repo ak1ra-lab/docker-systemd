@@ -1,0 +1,39 @@
+---
+- name: Converge
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Install a package with the distribution package manager
+      ansible.builtin.package:
+        name: "{{ molecule_test_package }}"
+        state: present
+
+    - name: Deploy the integration test service unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/molecule-demo.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Molecule systemd integration test service
+
+          [Service]
+          Type=simple
+          ExecStart=/bin/sh -c 'while true; do date +%%s%%N > /run/molecule-demo.heartbeat; sleep 1; done'
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Reload systemd
+
+    - name: Flush handlers so the new unit is visible before it is started
+      ansible.builtin.meta: flush_handlers
+
+    - name: Start and enable the integration test service
+      ansible.builtin.systemd_service:
+        name: molecule-demo.service
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

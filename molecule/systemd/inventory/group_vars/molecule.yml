@@ -1,0 +1,11 @@
+---
+# Shared settings for the molecule group. The hosts and their container_image
+# values are generated from matrix.yaml into inventory/hosts.yml.
+ansible_connection: containers.podman.podman
+container_command: /sbin/init
+container_systemd: always
+
+# Installed by converge to prove the package manager integration works.
+# `tree` is available in the base repositories of every distribution in the
+# matrix.
+molecule_test_package: tree

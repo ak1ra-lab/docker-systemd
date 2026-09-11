@@ -1,0 +1,12 @@
+---
+- name: Destroy container instances
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Remove containers from the inventory
+      containers.podman.podman_container:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ groups['molecule'] }}"
+      loop_control:
+        label: "{{ item }}"

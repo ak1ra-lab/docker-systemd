@@ -1,0 +1,69 @@
+---
+- name: Verify
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert the integration test service is running and enabled
+      ansible.builtin.assert:
+        that:
+          - "'molecule-demo.service' in ansible_facts.services"
+          - "ansible_facts.services['molecule-demo.service'].state == 'running'"
+          - "ansible_facts.services['molecule-demo.service'].status == 'enabled'"
+        fail_msg: molecule-demo.service is not running and enabled
+        success_msg: molecule-demo.service is running and enabled
+
+    - name: Read the heartbeat file the service keeps updating
+      ansible.builtin.stat:
+        path: /run/molecule-demo.heartbeat
+      register: heartbeat_before
+
+    - name: Wait long enough for the service to update the heartbeat
+      ansible.builtin.pause:
+        seconds: 2
+
+    - name: Read the heartbeat file again
+      ansible.builtin.stat:
+        path: /run/molecule-demo.heartbeat
+      register: heartbeat_after
+
+    - name: Assert the service process is really doing work
+      ansible.builtin.assert:
+        that:
+          - heartbeat_before.stat.exists
+          - heartbeat_after.stat.exists
+          - heartbeat_after.stat.mtime > heartbeat_before.stat.mtime
+        fail_msg: the service process is not updating its heartbeat file
+        success_msg: the service process is alive and working
+
+    - name: Stop the integration test service
+      ansible.builtin.systemd_service:
+        name: molecule-demo.service
+        state: stopped
+
+    - name: Gather service facts after stopping
+      ansible.builtin.service_facts:
+
+    - name: Assert the service is stopped
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['molecule-demo.service'].state == 'stopped'"
+        fail_msg: molecule-demo.service is still running
+        success_msg: molecule-demo.service stopped
+
+    - name: Disable the integration test service
+      ansible.builtin.systemd_service:
+        name: molecule-demo.service
+        enabled: false
+
+    - name: Gather service facts after disabling
+      ansible.builtin.service_facts:
+
+    - name: Assert the service is disabled
+      ansible.builtin.assert:
+        that:
+          - "ansible_facts.services['molecule-demo.service'].status == 'disabled'"
+        fail_msg: molecule-demo.service is still enabled
+        success_msg: molecule-demo.service disabled
