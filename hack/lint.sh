@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Run every linter used by CI against the repository.
-set -euo pipefail
+set -o errexit -o nounset
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
-cd "$ROOT_DIR"
+cd "${ROOT_DIR}"
 
 if [[ -d ${ROOT_DIR}/.venv/bin ]]; then
     PATH="${ROOT_DIR}/.venv/bin:${PATH}"
@@ -16,7 +16,7 @@ printf '==> shellcheck\n'
 shellcheck hack/*.sh
 
 printf '==> shfmt\n'
-shfmt -d hack
+shfmt -d -i=4 -ci hack
 
 if command -v ruff >/dev/null 2>&1; then
     printf '==> ruff (check)\n'
@@ -53,4 +53,4 @@ else
 fi
 
 printf '==> generated files are up to date\n'
-"$PYTHON" hack/generate.py --check
+"${PYTHON}" hack/generate.py --check
