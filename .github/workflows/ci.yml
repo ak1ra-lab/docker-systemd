@@ -188,8 +188,16 @@ jobs:
       # The build-smoke jobs already built every amd64 image and wrote the
       # layers to the Actions cache. Rebuilding from that cache is seconds per
       # image instead of a second cold build with Podman.
+      #
+      # The runner only exposes ACTIONS_RUNTIME_TOKEN and the cache URLs to
+      # actions, not to run steps, and buildx silently drops a gha cache entry
+      # when the token is missing. Run the loader through a Node action so the
+      # buildx processes inherit the token and can import the cache.
       - name: Rebuild the amd64 images from the Actions cache
-        run: hack/ci-load-images.sh --arch amd64
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await exec.exec('hack/ci-load-images.sh', ['--arch', 'amd64'])
       - name: Run the Ansible-native Molecule scenario
         run: sudo env "PATH=${PATH}" hack/molecule-test.sh
 

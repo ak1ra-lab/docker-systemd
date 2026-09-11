@@ -2,10 +2,12 @@
 # Rebuild the matrix images from the GitHub Actions build cache and load them
 # into Podman.
 #
-# GitHub Actions only: the cache backend reads the Actions cache environment
-# that every job provides. The build-smoke jobs write every layer to that cache
-# with `cache-to: type=gha,mode=max`, so rebuilding here takes seconds per
-# image instead of a cold Podman build.
+# GitHub Actions only. The cache backend needs the Actions runtime token, which
+# the runner exposes to actions but not to run steps, so this script must be
+# invoked from a Node action (the CI workflow wraps it in actions/github-script).
+# The build-smoke jobs write every layer to that cache with
+# `cache-to: type=gha,mode=max`, so rebuilding here takes seconds per image
+# instead of a cold Podman build.
 #
 # Images are loaded into rootful Podman (via sudo when not run as root)
 # because that is how hack/molecule-test.sh runs the scenario in CI. Loads are
