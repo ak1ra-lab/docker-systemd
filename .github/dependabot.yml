@@ -1,0 +1,20 @@
+---
+# Keep GitHub Actions pinned by commit SHA up to date. The Docker ecosystem is
+# intentionally not enabled: base images are tracked by tag and refreshed by
+# the weekly rebuild, not by a bot (see README, "Security and reproducibility").
+# Version updates wait out a 7-day cooldown (security updates are exempt) so a
+# compromised release is likely to be yanked before Dependabot opens a PR.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
