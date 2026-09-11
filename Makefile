@@ -4,7 +4,7 @@ RUNTIME ?= podman
 JOBS ?= 4
 PYTHON_BIN := $(VENV)/bin/python
 
-.PHONY: help venv generate check lint build smoke molecule clean
+.PHONY: help venv generate check lint format build smoke molecule clean
 
 help:
 	@printf '%s\n' \
@@ -12,6 +12,7 @@ help:
 		'generate  regenerate Dockerfiles, inventory and README table' \
 		'check     verify generated files are up to date' \
 		'lint      run shellcheck, shfmt, ruff, yamllint, ansible-lint, hadolint' \
+		'format    rewrite shell and Python files with shfmt and ruff' \
 		'build     build every image (RUNTIME=podman, JOBS=4)' \
 		'smoke     run the runtime smoke test for every image' \
 		'molecule  run the Ansible-native Molecule scenario' \
@@ -32,6 +33,11 @@ check: $(PYTHON_BIN)
 
 lint: $(PYTHON_BIN)
 	PATH="$(CURDIR)/$(VENV)/bin:$$PATH" PYTHON="$(PYTHON_BIN)" hack/lint.sh
+
+format: $(PYTHON_BIN)
+	PATH="$(CURDIR)/$(VENV)/bin:$$PATH" shfmt -w -i=4 -ci hack
+	PATH="$(CURDIR)/$(VENV)/bin:$$PATH" ruff check --fix hack
+	PATH="$(CURDIR)/$(VENV)/bin:$$PATH" ruff format hack
 
 build: $(PYTHON_BIN)
 	PYTHON="$(PYTHON_BIN)" hack/build.sh --all --runtime "$(RUNTIME)" --jobs "$(JOBS)"
