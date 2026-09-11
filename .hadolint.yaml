@@ -1,0 +1,15 @@
+---
+# Package versions are intentionally not pinned: these images are rebuilt
+# weekly and must track the current distribution packages. Pinned versions
+# would break as soon as a package is superseded upstream.
+#
+# DL3009: the apt lists are kept on purpose. README.md ("Security and
+# reproducibility") documents that package-manager metadata stays in the image
+# so roles that install packages behave like they do on a real host, without an
+# explicit cache update first. Downloaded archives are removed by `apt-get
+# clean` in the same layer, and `dnf clean packages` does the equivalent on the
+# RPM family, so only the metadata is retained.
+ignored:
+  - DL3008 # Pin versions in apt-get install
+  - DL3041 # Specify version with dnf install
+  - DL3009 # Delete the apt lists (/var/lib/apt/lists) after installing something

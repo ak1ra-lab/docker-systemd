@@ -1,0 +1,18 @@
+# Generated from templates/Dockerfile.rhel.j2 by hack/generate.py -- do not edit.
+# Source of truth: matrix.yaml ({{ distro }} {{ version }}).
+FROM {{ base_image }}
+
+LABEL org.opencontainers.image.title="{{ title }}" \
+      org.opencontainers.image.description="{{ project.description }}" \
+      org.opencontainers.image.source="{{ project.repository }}" \
+      org.opencontainers.image.licenses="{{ project.license }}" \
+      org.opencontainers.image.base.name="{{ base_image }}"
+
+RUN dnf install -y \
+{{ packages_block }}
+    && dnf clean packages \
+    && rm -f /var/lib/dbus/machine-id \
+    && : > /etc/machine-id
+{{ post_install_block }}
+STOPSIGNAL {{ stop_signal }}
+CMD ["{{ init_path }}"]

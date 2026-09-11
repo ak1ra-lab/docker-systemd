@@ -1,0 +1,10 @@
+# Development dependencies for this repository.
+#
+# `molecule` pulls in ansible-core; ansible-lint, ruff and yamllint are used
+# by `make lint`. PyYAML and Jinja2 are used by hack/generate.py.
+ansible-lint==26.8.0
+molecule==26.8.0
+PyYAML==6.0.3
+Jinja2==3.1.6
+ruff==0.15.5
+yamllint==1.38.0

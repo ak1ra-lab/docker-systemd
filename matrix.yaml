@@ -1,0 +1,149 @@
+---
+# Single source of truth for the image matrix.
+#
+# Derived files are generated from this file by `python3 hack/generate.py`:
+#   - images/<distro>/<version>/Dockerfile
+#   - molecule/systemd/inventory/hosts.yml
+#   - the distribution table in README.md
+#
+# Run `python3 hack/generate.py --check` to verify there is no drift.
+#
+# Policy: only distributions that upstream still supports, or that have clear
+# value for Ansible role compatibility testing, belong here. EOL releases are
+# removed from this file; they are not kept as legacy images.
+
+project:
+  name: docker-systemd
+  description: >-
+    systemd-enabled Linux distribution containers for Ansible Molecule
+    managed nodes
+  repository: https://github.com/ak1ra-lab/docker-systemd
+  license: MIT
+
+registry:
+  host: ghcr.io
+  namespace: ak1ra-lab/docker-systemd
+
+defaults:
+  architectures:
+    - amd64
+    - arm64
+  init_path: /sbin/init
+  stop_signal: SIGRTMIN+3
+
+# A family is a group of distributions that share a Dockerfile template and a
+# package management style. Keep differences inside a family explicit by
+# overriding `packages_add` / `packages_remove` on a distro.
+families:
+  debian:
+    template: Dockerfile.debian.j2
+    packages:
+      - ca-certificates
+      - dbus
+      - iproute2
+      - procps
+      - python3
+      - python3-apt
+      - sudo
+      - systemd
+      - systemd-sysv
+  rhel:
+    template: Dockerfile.rhel.j2
+    packages:
+      - ca-certificates
+      - dbus-broker
+      - iproute
+      - procps-ng
+      - python3
+      - python3-dnf
+      - sudo
+      - systemd
+    enable_units:
+      - dbus-broker.service
+
+distros:
+  debian:
+    family: debian
+    display_name: Debian
+    upstream: https://www.debian.org/releases/
+    versions:
+      - version: "13"
+        codename: trixie
+        base_image: docker.io/library/debian:13
+        released: "2025-08-09"
+        eol: "2030-06-30"
+        aliases: [latest]
+      - version: "12"
+        codename: bookworm
+        base_image: docker.io/library/debian:12
+        released: "2023-06-10"
+        eol: "2028-06-30"
+
+  ubuntu:
+    family: debian
+    display_name: Ubuntu
+    upstream: https://ubuntu.com/about/release-cycle
+    versions:
+      - version: "26.04"
+        codename: resolute
+        base_image: docker.io/library/ubuntu:26.04
+        released: "2026-04-23"
+        eol: "2031-05-29"
+        aliases: [latest, lts]
+      - version: "24.04"
+        codename: noble
+        base_image: docker.io/library/ubuntu:24.04
+        released: "2024-04-25"
+        eol: "2029-05-31"
+
+  rocky:
+    family: rhel
+    display_name: Rocky Linux
+    upstream: https://wiki.rockylinux.org/rocky/version/
+    versions:
+      - version: "10"
+        base_image: docker.io/rockylinux/rockylinux:10
+        eol: "2035-05-31"
+        aliases: [latest]
+      - version: "9"
+        base_image: docker.io/rockylinux/rockylinux:9
+        eol: "2032-05-31"
+
+  almalinux:
+    family: rhel
+    display_name: AlmaLinux
+    upstream: https://wiki.almalinux.org/release-notes/
+    versions:
+      - version: "10"
+        base_image: docker.io/library/almalinux:10
+        eol: "2035-05-31"
+        aliases: [latest]
+      - version: "9"
+        base_image: docker.io/library/almalinux:9
+        eol: "2032-05-31"
+
+  fedora:
+    family: rhel
+    display_name: Fedora Linux
+    upstream: https://fedoraproject.org/wiki/Releases
+    versions:
+      - version: "44"
+        base_image: docker.io/library/fedora:44
+        eol: "2027-06-02"
+        aliases: [latest]
+      - version: "43"
+        base_image: docker.io/library/fedora:43
+        eol: "2026-12-09"
+
+  centos-stream:
+    family: rhel
+    display_name: CentOS Stream
+    upstream: https://www.centos.org/centos-stream/
+    versions:
+      - version: "10"
+        base_image: quay.io/centos/centos:stream10
+        eol: "2030-05-31"
+        aliases: [latest]
+      - version: "9"
+        base_image: quay.io/centos/centos:stream9
+        eol: "2027-05-31"
