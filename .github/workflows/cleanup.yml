@@ -1,0 +1,55 @@
+---
+name: Clean up GHCR
+
+on:
+  schedule:
+    # Weekly, after the Monday rebuild has pushed the current tags.
+    - cron: "43 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only log versions that would be deleted (false = live cleanup)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ghcr-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete untagged image versions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write # Required to delete package versions through the API.
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install PyYAML
+        run: pip install "PyYAML==6.0.3"
+      - name: Generate package list from matrix.yaml
+        id: packages
+        run: |
+          echo "packages=$(python3 hack/matrix.py --format ghcr-packages)" >> "$GITHUB_OUTPUT"
+      - name: Delete untagged versions older than 30 days
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+        with:
+          owner: ak1ra-lab
+          packages: ${{ steps.packages.outputs.packages }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          delete-untagged: true
+          older-than: 30 days
+          validate: true
+          # Scheduled runs have no dispatch inputs; fall back to live cleanup.
+          dry-run: ${{ inputs.dry_run || 'false' }}

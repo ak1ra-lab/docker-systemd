@@ -134,6 +134,14 @@ def tsv(matrix: Matrix) -> str:
     return "\n".join(lines)
 
 
+def ghcr_packages(matrix: Matrix) -> str:
+    namespace = matrix["registry"]["namespace"]
+    _, _, prefix = namespace.partition("/")
+    return ",".join(
+        f"{prefix}/{distro}" if prefix else distro for distro in matrix["distros"]
+    )
+
+
 def json_matrix(matrix: Matrix) -> str:
     return json.dumps(entries(matrix), indent=2)
 
@@ -141,6 +149,7 @@ def json_matrix(matrix: Matrix) -> str:
 FORMATTERS = {
     "github-build": github_build_matrix,
     "github-publish": github_publish_matrix,
+    "ghcr-packages": ghcr_packages,
     "tsv": tsv,
     "json": json_matrix,
 }
